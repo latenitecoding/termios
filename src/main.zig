@@ -67,6 +67,26 @@ pub const Termios = struct {
         self.cooked = true;
     }
 
+    pub fn rawMode(self: *Self) *Self {
+        return self
+            .setIgnoreBreak(false)
+            .setBreakToInterruptNotIgnored(false)
+            .setParityErrorsAreMarked(false)
+            .setInputStripping(false)
+            .setNewLineToCarriageReturnOnInput(false)
+            .setIgnoreCarriageReturn(false)
+            .setCarriageReturnToNewLineOnInput(false)
+            .setStartStopControlOnOutput(false)
+            .setOutputProcessing(false)
+            .setEchoInput(false)
+            .setEchoNewLineInCanonicalMode(false)
+            .setCanonicalMode(false)
+            .setInterruptSignals(false)
+            .setSpecialInputProcessingInCanonicalMode(false)
+            .setParityDetection(false)
+            .setCharacterSize(.CS8);
+    }
+
     pub fn setBreakToInterruptNotIgnored(self: *Self, flag: bool) *Self {
         if (flag) {
             _ = self.setIgnoreBreak(false);
@@ -189,25 +209,8 @@ pub const Termios = struct {
         return self;
     }
 
-    pub fn uncook(self: *Self) posix.TermiosSetError!void {
-        _ = self
-            .setIgnoreBreak(false)
-            .setBreakToInterruptNotIgnored(false)
-            .setParityErrorsAreMarked(false)
-            .setInputStripping(false)
-            .setNewLineToCarriageReturnOnInput(false)
-            .setIgnoreCarriageReturn(false)
-            .setCarriageReturnToNewLineOnInput(false)
-            .setStartStopControlOnOutput(false)
-            .setOutputProcessing(false)
-            .setEchoInput(false)
-            .setEchoNewLineInCanonicalMode(false)
-            .setCanonicalMode(false)
-            .setInterruptSignals(false)
-            .setSpecialInputProcessingInCanonicalMode(false)
-            .setParityDetection(false)
-            .setCharacterSize(.CS8);
 
+    pub fn uncook(self: *Self) posix.TermiosSetError!void {
         try posix.tcsetattr(self.tty.handle, .FLUSH, self.term);
         self.cooked = false;
     }
@@ -220,7 +223,10 @@ pub const TermSize = struct {
 
 pub fn main() !void {
     var termios = try Termios.init();
-    try termios.uncook();
+    defer termios.deinit() catch {};
+
+    try termios
+        .rawMode()
+        .uncook();
     std.debug.print("({}, {})\n", .{ termios.size.height, termios.size.width });
-    try termios.deinit();
 }
