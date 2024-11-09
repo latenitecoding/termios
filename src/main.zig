@@ -44,14 +44,7 @@ pub const Termios = struct {
 
     pub fn deinit(self: *Self) TermiosWriteError!void {
         errdefer self.tty.close();
-
-        if (!self.cooked) {
-            try self.cook();
-        }
-        if (self.use_alt_buff) {
-            try self.exitAltBuffer();
-        }
-
+        try self.exitNonCanonicalTerm();
         self.tty.close();
     }
 
@@ -94,11 +87,30 @@ pub const Termios = struct {
         try self.flush();
     }
 
+    pub fn enterNonCanonicalTermWithAltBuffer(self: *Self) TermiosWriteError!void {
+        try self
+            .rawMode()
+            .setMinimumCharactersForNonCanonicalRead(1)
+            .setTimeoutForNonCanonicalRead(0)
+            .uncook();
+
+        try self.enterAltBuffer(true);
+    }
+
     pub fn exitAltBuffer(self: *Self) posix.WriteError!void {
         try self.disableAltBuffer();
         try self.restoreScreen();
         try self.restoreCursor();
         try self.flush();
+    }
+
+    pub fn exitNonCanonicalTerm(self: *Self) TermiosWriteError!void {
+        if (!self.cooked) {
+            try self.cook();
+        }
+        if (self.use_alt_buff) {
+            try self.exitAltBuffer();
+        }
     }
 
     pub fn flush(self: *Self) posix.WriteError!void {
@@ -292,13 +304,8 @@ pub fn main() !void {
     var termios = try Termios.init();
     defer termios.deinit() catch {};
 
-    try termios
-        .rawMode()
-        .setMinimumCharactersForNonCanonicalRead(1)
-        .setTimeoutForNonCanonicalRead(0)
-        .uncook();
-
-    try termios.enterAltBuffer(true);
+    try termios.enterNonCanonicalTermWithAltBuffer();
+    try termios.exitNonCanonicalTerm();
 
     std.debug.print("({}, {})\n", .{ termios.size.height, termios.size.width });
 }
