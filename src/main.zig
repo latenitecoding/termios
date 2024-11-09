@@ -172,6 +172,11 @@ pub const Termios = struct {
         return self;
     }
 
+    pub fn setMinimumCharactersForNonCanonicalRead(self: *Self, min: u8) *Self {
+        self.term.cc[@intFromEnum(posix.V.MIN)] = min;
+        return self;
+    }
+
     pub fn setNewLineToCarriageReturnOnInput(self: *Self, flag: bool) *Self {
         self.term.iflag.INLCR = flag;
         return self;
@@ -209,6 +214,10 @@ pub const Termios = struct {
         return self;
     }
 
+    pub fn setTimeoutForNonCanonicalRead(self: *Self, time: u8) *Self {
+        self.term.cc[@intFromEnum(posix.V.TIME)] = time;
+        return self;
+    }
 
     pub fn uncook(self: *Self) posix.TermiosSetError!void {
         try posix.tcsetattr(self.tty.handle, .FLUSH, self.term);
@@ -227,6 +236,8 @@ pub fn main() !void {
 
     try termios
         .rawMode()
+        .setMinimumCharactersForNonCanonicalRead(1)
+        .setTimeoutForNonCanonicalRead(0)
         .uncook();
     std.debug.print("({}, {})\n", .{ termios.size.height, termios.size.width });
 }
