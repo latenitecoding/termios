@@ -18,7 +18,9 @@ pub const Termios = struct {
     tty: File,
     base_term: posix.termios,
     term: posix.termios,
+    size: TermSize,
     buff_out: @TypeOf(io.bufferedWriter(stdout.writer())),
+
     pub fn init() TermiosError!Termios {
         var tty = try fs.cwd().openFile("/dev/tty", .{ .mode = .read_write });
         errdefer tty.close();
@@ -29,6 +31,7 @@ pub const Termios = struct {
             .tty = tty,
             .base_term = base_term,
             .term = base_term,
+            .size = try Termios.getSize(tty),
             .buff_out = io.bufferedWriter(stdout.writer()),
         };
     }
@@ -38,9 +41,26 @@ pub const Termios = struct {
         self.tty.close();
     }
 
+    fn getSize(tty: File) posix.UnexpectedError!TermSize {
+        var win_size = mem.zeroes(posix.winsize);
+
+        const err = posix.system.ioctl(tty.handle, posix.T.IOCGWINSZ, @intFromPtr(&win_size));
+        if (posix.errno(err) != .SUCCESS) {
+            return posix.unexpectedErrno(@enumFromInt(err));
+        }
+
+        return .{
+            .height = win_size.row,
+            .width = win_size.col,
+        };
+    }
 };
 
+pub const TermSize = struct {
+    height: usize,
+    width: usize,
 };
+
 pub fn main() !void {
     const termios = try Termios.init();
     std.debug.print("({}, {})\n", .{ termios.size.height, termios.size.width });
