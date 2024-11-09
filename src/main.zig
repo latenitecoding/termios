@@ -222,4 +222,5 @@ pub fn main() !void {
     var termios = try Termios.init();
     try termios.uncook();
     std.debug.print("({}, {})\n", .{ termios.size.height, termios.size.width });
+    try termios.deinit();
 }
