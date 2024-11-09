@@ -8,9 +8,11 @@ const stdout = io.getStdOut();
 
 const File = std.fs.File;
 
-pub const TermiosError = File.OpenError ||
+pub const TermiosReadError = File.OpenError ||
                          posix.TermiosGetError ||
                          posix.UnexpectedError;
+
+pub const TermiosWriteError = posix.TermiosSetError || posix.WriteError;
 
 pub const Termios = struct {
     const Self = @This();
@@ -21,8 +23,9 @@ pub const Termios = struct {
     size: TermSize,
     cooked: bool,
     buff_out: @TypeOf(io.bufferedWriter(stdout.writer())),
+    use_alt_buff: bool,
 
-    pub fn init() TermiosError!Termios {
+    pub fn init() TermiosReadError!Termios {
         var tty = try fs.cwd().openFile("/dev/tty", .{ .mode = .read_write });
         errdefer tty.close();
 
@@ -35,14 +38,18 @@ pub const Termios = struct {
             .size = try Termios.getSize(tty),
             .cooked = true,
             .buff_out = io.bufferedWriter(stdout.writer()),
+            .use_alt_buff = false,
         };
     }
 
-    pub fn deinit(self: *Self) posix.TermiosSetError!void {
+    pub fn deinit(self: *Self) TermiosWriteError!void {
         errdefer self.tty.close();
 
         if (!self.cooked) {
             try self.cook();
+        }
+        if (self.use_alt_buff) {
+            try self.exitAltBuffer();
         }
 
         self.tty.close();
@@ -67,6 +74,41 @@ pub const Termios = struct {
         self.cooked = true;
     }
 
+    pub fn disableAltBuffer(self: *Self) posix.WriteError!void {
+        try self.buff_out.writer().writeAll("\x1B[?1049l");
+        self.use_alt_buff = false;
+    }
+
+    pub fn enableAltBuffer(self: *Self) posix.WriteError!void {
+        try self.buff_out.writer().writeAll("\x1B[?1049h");
+        self.use_alt_buff = true;
+    }
+
+    pub fn enterAltBuffer(self: *Self, hide_cursor: bool) posix.WriteError!void {
+        if (hide_cursor) {
+            try self.hideCursor();
+        }
+        try self.saveCursorPosition();
+        try self.saveScreen();
+        try self.enableAltBuffer();
+        try self.flush();
+    }
+
+    pub fn exitAltBuffer(self: *Self) posix.WriteError!void {
+        try self.disableAltBuffer();
+        try self.restoreScreen();
+        try self.restoreCursor();
+        try self.flush();
+    }
+
+    pub fn flush(self: *Self) posix.WriteError!void {
+        try self.buff_out.flush();
+    }
+
+    pub fn hideCursor(self: *Self) posix.WriteError!void {
+        try self.buff_out.writer().writeAll("\x1B[?25l");
+    }
+
     pub fn rawMode(self: *Self) *Self {
         return self
             .setIgnoreBreak(false)
@@ -85,6 +127,22 @@ pub const Termios = struct {
             .setSpecialInputProcessingInCanonicalMode(false)
             .setParityDetection(false)
             .setCharacterSize(.CS8);
+    }
+
+    pub fn restoreScreen(self: *Self) posix.WriteError!void {
+        try self.buff_out.writer().writeAll("\x1B[?47l");
+    }
+
+    pub fn restoreCursor(self: *Self) posix.WriteError!void {
+        try self.buff_out.writer().writeAll("\x1B[u");
+    }
+
+    pub fn saveCursorPosition(self: *Self) posix.WriteError!void {
+        try self.buff_out.writer().writeAll("\x1B[s");
+    }
+
+    pub fn saveScreen(self: *Self) posix.WriteError!void {
+        try self.buff_out.writer().writeAll("\x1B[?47h");
     }
 
     pub fn setBreakToInterruptNotIgnored(self: *Self, flag: bool) *Self {
@@ -239,5 +297,8 @@ pub fn main() !void {
         .setMinimumCharactersForNonCanonicalRead(1)
         .setTimeoutForNonCanonicalRead(0)
         .uncook();
+
+    try termios.enterAltBuffer(true);
+
     std.debug.print("({}, {})\n", .{ termios.size.height, termios.size.width });
 }
