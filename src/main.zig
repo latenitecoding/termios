@@ -100,7 +100,8 @@ pub const Termios = struct {
     pub fn exitAltBuffer(self: *Self) posix.WriteError!void {
         try self.disableAltBuffer();
         try self.restoreScreen();
-        try self.restoreCursor();
+        try self.restoreCursorPosition();
+        try self.showCursor();
         try self.flush();
     }
 
@@ -145,7 +146,7 @@ pub const Termios = struct {
         try self.buff_out.writer().writeAll("\x1B[?47l");
     }
 
-    pub fn restoreCursor(self: *Self) posix.WriteError!void {
+    pub fn restoreCursorPosition(self: *Self) posix.WriteError!void {
         try self.buff_out.writer().writeAll("\x1B[u");
     }
 
@@ -287,6 +288,10 @@ pub const Termios = struct {
     pub fn setTimeoutForNonCanonicalRead(self: *Self, time: u8) *Self {
         self.term.cc[@intFromEnum(posix.V.TIME)] = time;
         return self;
+    }
+
+    pub fn showCursor(self: *Self) posix.WriteError!void {
+        try self.buff_out.writer().writeAll("\x1B[?25h");
     }
 
     pub fn uncook(self: *Self) posix.TermiosSetError!void {
