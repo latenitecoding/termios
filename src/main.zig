@@ -16,6 +16,12 @@ pub const TermiosReadError = File.OpenError ||
 
 pub const TermiosWriteError = posix.TermiosSetError || posix.WriteError;
 
+pub var TERM: ?Termios = null;
+
+pub fn getTerm() TermiosReadError!*Termios {
+    return Termios.init();
+}
+
 pub const Termios = struct {
     const Self = @This();
 
@@ -27,13 +33,17 @@ pub const Termios = struct {
     buff_out: @TypeOf(io.bufferedWriter(stdout.writer())),
     use_alt_buff: bool,
 
-    pub fn init() TermiosReadError!Termios {
+    pub fn init() TermiosReadError!*Termios {
+        if (TERM != null) {
+            return &TERM.?;
+        }
+
         var tty = try fs.cwd().openFile("/dev/tty", .{ .mode = .read_write });
         errdefer tty.close();
 
         const base_term = try posix.tcgetattr(tty.handle);
 
-        return .{
+        TERM = .{
             .tty = tty,
             .base_term = base_term,
             .term = base_term,
@@ -42,6 +52,8 @@ pub const Termios = struct {
             .buff_out = io.bufferedWriter(stdout.writer()),
             .use_alt_buff = false,
         };
+
+        return &TERM.?;
     }
 
     pub fn deinit(self: *Self) TermiosWriteError!void {
@@ -334,7 +346,7 @@ pub const TermSize = struct {
 };
 
 pub fn main() !void {
-    var termios = try Termios.init();
+    var termios = try getTerm();
     defer termios.deinit() catch {};
 
     try termios.enterNonCanonicalTermWithAltBuffer();
