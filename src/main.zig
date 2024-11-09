@@ -8,6 +8,8 @@ const stdout = io.getStdOut();
 
 const File = std.fs.File;
 
+pub const TermiosCursorError = error{ OutOfBounds } || posix.WriteError;
+
 pub const TermiosReadError = File.OpenError ||
                          posix.TermiosGetError ||
                          posix.UnexpectedError;
@@ -120,6 +122,23 @@ pub const Termios = struct {
 
     pub fn hideCursor(self: *Self) posix.WriteError!void {
         try self.buff_out.writer().writeAll("\x1B[?25l");
+    }
+
+    pub fn moveCursor(self: *Self, row: usize, col: usize) TermiosCursorError!void {
+        if (self.size.height < row or self.size.width < col) {
+            return error.OutOfBounds;
+        }
+        try self.buff_out.writer().print("\x1B[{};{}H", .{ row + 1, col + 1 });
+    }
+
+    pub fn print(self: *Self, txt: []const u8, args: anytype) posix.WriteError!void {
+        try self.buff_out.writer().print(txt, args);
+    }
+
+    pub fn printAt(self: *Self, txt: []const u8, args: anytype,
+                   row: usize, col: usize) TermiosCursorError!void {
+        try self.moveCursor(row, col);
+        try self.print(txt, args);
     }
 
     pub fn rawMode(self: *Self) *Self {
@@ -298,6 +317,15 @@ pub const Termios = struct {
         try posix.tcsetattr(self.tty.handle, .FLUSH, self.term);
         self.cooked = false;
     }
+
+    pub fn write(self: *Self, txt: []const u8) posix.WriteError!void {
+        try self.buff_out.writer().writeAll(txt);
+    }
+
+    pub fn writeAt(self: *Self, txt: []const u8, row: usize, col: usize) TermiosCursorError!void {
+        try self.moveCursor(row, col);
+        try self.write(txt);
+    }
 };
 
 pub const TermSize = struct {
@@ -310,6 +338,12 @@ pub fn main() !void {
     defer termios.deinit() catch {};
 
     try termios.enterNonCanonicalTermWithAltBuffer();
+
+    try termios.write("Hello, World");
+    try termios.writeAt("All your term are belong to us!", 2, 4);
+    try termios.flush();
+    std.time.sleep(3_000_000_000);
+
     try termios.exitNonCanonicalTerm();
 
     std.debug.print("({}, {})\n", .{ termios.size.height, termios.size.width });
