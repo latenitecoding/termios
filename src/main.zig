@@ -53,6 +53,12 @@ pub const Termios = struct {
             .use_alt_buff = false,
         };
 
+        posix.sigaction(posix.SIG.WINCH, &posix.Sigaction{
+            .handler = .{ .handler = Termios.handleSigWinch },
+            .mask = posix.empty_sigset,
+            .flags = 0,
+        }, null);
+
         return &TERM.?;
     }
 
@@ -74,6 +80,11 @@ pub const Termios = struct {
             .height = win_size.row,
             .width = win_size.col,
         };
+    }
+
+    fn handleSigWinch(_: c_int) callconv(.C) void {
+        var term = getTerm() catch return;
+        term.size = Termios.getSize(term.tty) catch term.size;
     }
 
     pub fn cook(self: *Self) posix.TermiosSetError!void {
