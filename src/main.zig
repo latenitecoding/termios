@@ -38,7 +38,7 @@ pub const Termios = struct {
         };
     }
 
-    pub fn deinit(self: Self) posix.TermiosSetError!void {
+    pub fn deinit(self: *Self) posix.TermiosSetError!void {
         errdefer self.tty.close();
 
         if (!self.cooked) {
