@@ -177,6 +177,17 @@ pub const Termios = struct {
     }
 
     pub fn print(self: *Self, comptime format: []const u8, args: anytype) posix.WriteError!void {
+        const prev_len = self.buff_out.end;
+        try self.buff_out.writer().print(format, args);
+
+        self.buff_out.end = @min(self.buff_out.end, prev_len + self.size.width);
+
+        if (self.auto_flush) {
+            try self.flush();
+        }
+    }
+
+    pub fn printAll(self: *Self, comptime format: []const u8, args: anytype) posix.WriteError!void {
         try self.buff_out.writer().print(format, args);
         if (self.auto_flush) {
             try self.flush();
@@ -186,7 +197,15 @@ pub const Termios = struct {
     pub fn printAt(self: *Self, comptime format: []const u8, args: anytype,
                    row: usize, col: usize) TermiosCursorError!void {
         try self.moveCursorTo(row, col);
-        try self.print(format, args);
+
+        const prev_len = self.buff_out.end;
+        try self.buff_out.writer().print(format, args);
+
+        self.buff_out.end = @min(self.buff_out.end, prev_len + self.size.width - col);
+
+        if (self.auto_flush) {
+            try self.flush();
+        }
     }
 
     pub fn printCtrlSeq(self: *Self, comptime format: []const u8, args: anytype) posix.WriteError!void {
@@ -204,8 +223,7 @@ pub const Termios = struct {
 
     pub fn printlnAt(self: *Self, comptime format: []const u8, args: anytype, row: usize, col: usize) TermiosCursorError!void {
         const prev_len = self.buff_out.end;
-        try self.moveCursorTo(row, col);
-        try self.print(format, args);
+        try self.printAt(format, args, row, col);
         try self.padLine(self.buff_out.end - prev_len + col);
     }
 
@@ -387,6 +405,13 @@ pub const Termios = struct {
     }
 
     pub fn write(self: *Self, txt: []const u8) posix.WriteError!void {
+        try self.buff_out.writer().writeAll(txt[0..@min(txt.len, self.size.width)]);
+        if (self.auto_flush) {
+            try self.flush();
+        }
+    }
+
+    pub fn writeAll(self: *Self, txt: []const u8) posix.WriteError!void {
         try self.buff_out.writer().writeAll(txt);
         if (self.auto_flush) {
             try self.flush();
@@ -395,11 +420,13 @@ pub const Termios = struct {
 
     pub fn writeAt(self: *Self, txt: []const u8, row: usize, col: usize) TermiosCursorError!void {
         try self.moveCursorTo(row, col);
-        try self.write(txt);
+        try self.write(txt[0..@min(txt.len, self.size.width - col)]);
     }
 
     pub fn writeByteNTimes(self: *Self, byte: u8, n: usize) posix.WriteError!void {
-        try self.buff_out.writer().writeByteNTimes(byte, @min(n, self.size.width));
+        if (n > 0) {
+            try self.buff_out.writer().writeByteNTimes(byte, @min(n, self.size.width));
+        }
         if (self.auto_flush) {
             try self.flush();
         }
@@ -418,8 +445,7 @@ pub const Termios = struct {
     }
 
     pub fn writelnAt(self: *Self, txt: []const u8, row: usize, col: usize) TermiosCursorError!void {
-        try self.moveCursorTo(row, col);
-        try self.write(txt);
+        try self.writeAt(txt, row, col);
         try self.padLine(txt.len + col);
     }
 };
