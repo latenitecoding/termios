@@ -459,16 +459,31 @@ pub fn main() !void {
     var termios = try getTerm();
     defer termios.deinit() catch {};
 
+    const smoke = [2][9][]const u8 {
+        [9][]const u8{
+            "                                                                                           z ",
+            "                                 (  ) (@@) ( )  (@)  ()    @@    O     @     O     @    zzz  ",
+            "                            (@@@)                                                  zzzzzz    ",
+            "                       (     )                        zzzzzzzzzzz  zzzzzzzzzzzzzzzzzzzz  zzz ",
+            "                  (@@@)                               zzzzzzzzz  zzzzzzzzzzzzzzzzzzzz  zzzzz ",
+            "             (     )                                  zzzzzzz  zzzzzzzzzzzzzzzzzzzz  zzzzzzz ",
+            "          (@@@@)                                      zzzzz                zzzzzz      zzzzz ",
+            "                                                      zzzzz              zzzzzz        zzzzz ",
+            "        (   )                                         zzzzz            zzzzzz          zzzzz ",
+        },
+        [9][]const u8{
+            "                                                                                           z ",
+            "                                 (@@) (  ) (@)  ()  (@)    OO    @     O     @     O    zzz  ",
+            "                            (   )                                                  zzzzzz    ",
+            "                       (@@@@@)                        zzzzzzzzzzz  zzzzzzzzzzzzzzzzzzzz  zzz ",
+            "                  (   )                               zzzzzzzzz  zzzzzzzzzzzzzzzzzzzz  zzzzz ",
+            "             (@@@@@)                                  zzzzzzz  zzzzzzzzzzzzzzzzzzzz  zzzzzzz ",
+            "          (    )                                      zzzzz                zzzzzz      zzzzz ",
+            "                                                      zzzzz              zzzzzz        zzzzz ",
+            "        (@@@)                                         zzzzz            zzzzzz          zzzzz ",
+        }
+    };
     const train = [_][]const u8{
-        "                                                                                           z ",
-        "                                 (  ) (@@) ( )  (@)  ()    @@    O     @     O     @    zzz  ",
-        "                            (@@@)                                                  zzzzzz    ",
-        "                       (     )                        zzzzzzzzzzz  zzzzzzzzzzzzzzzzzzzz  zzz ",
-        "                  (@@@)                               zzzzzzzzz  zzzzzzzzzzzzzzzzzzzz  zzzzz ",
-        "             (     )                                  zzzzzzz  zzzzzzzzzzzzzzzzzzzz  zzzzzzz ",
-        "          (@@@@)                                      zzzzz                zzzzzz      zzzzz ",
-        "                                                      zzzzz              zzzzzz        zzzzz ",
-        "        (   )                                         zzzzz            zzzzzz          zzzzz ",
         "      ====        ________                ___________ zzzzz          zzzzzz            zzzzz ",
         "  _D _|  |_______/        \\__I_I_____===__|_________| zzzzz        zzzzzz              zzzzz ",
         "   |(_)---  |   H\\________/ |   |        =|___ ___|   zzzzz      zzzzzz                zzzzz ",
@@ -527,15 +542,29 @@ pub fn main() !void {
     for (1..iters) |i| {
         const width = termios.size.width;
 
+        const smokeLines = smoke[@mod(i - 1, 12) / 6];
+
+        for (0..smokeLines.len) |j| {
+            const start = if (i > width) i - width else 0;
+            if (start >= smokeLines[j].len) {
+                try termios.writelnAt(" ", 10 + j, 0);
+                continue;
+            }
+            const end = @min(i, smokeLines[j].len);
+
+            try termios.writelnAt(smokeLines[j][start..end], 10 + j, width - @min(width, i));
+            try termios.flush();
+        }
+
         for (0..train.len) |j| {
             const start = if (i > width) i - width else 0;
             if (start >= train[j].len) {
-                try termios.writelnAt(" ", 10 + j, 0);
+                try termios.writelnAt(" ", 10 + smokeLines.len + j, 0);
                 continue;
             }
             const end = @min(i, train[j].len);
 
-            try termios.writelnAt(train[j][start..end], 10 + j, width - @min(width, i));
+            try termios.writelnAt(train[j][start..end], 10 + smokeLines.len + j, width - @min(width, i));
             try termios.flush();
         }
         
@@ -544,16 +573,16 @@ pub fn main() !void {
         for (0..wheelLines.len) |j| {
             const start = if (i > width) i - width else 0;
             if (start >= wheelLines[j].len) {
-                try termios.writelnAt(" ", 10 + train.len + j, 0);
+                try termios.writelnAt(" ", 10 + smokeLines.len + train.len + j, 0);
                 continue;
             }
             const end = @min(i, wheelLines[j].len);
 
-            try termios.writelnAt(wheelLines[j][start..end], 10 + train.len + j, width - @min(width, i));
+            try termios.writelnAt(wheelLines[j][start..end], 10 + smokeLines.len + train.len + j, width - @min(width, i));
             try termios.flush();
         }
 
-        std.time.sleep(50_000_000);
+        std.time.sleep(40_000_000);
     }
 
     try termios.exitNonCanonicalTerm();
