@@ -87,6 +87,11 @@ pub const Termios = struct {
         term.size = Termios.getSize(term.tty) catch term.size;
     }
 
+    fn padLine(self: *Self, txt_len: usize) posix.WriteError!void {
+        const width = self.size.width;
+        try self.buff_out.writer().writeByteNTimes(' ', width - txt_len);
+    }
+
     pub fn cook(self: *Self) posix.TermiosSetError!void {
         try posix.tcsetattr(self.tty.handle, .FLUSH, self.base_term);
         self.cooked = true;
@@ -162,6 +167,17 @@ pub const Termios = struct {
                    row: usize, col: usize) TermiosCursorError!void {
         try self.moveCursor(row, col);
         try self.print(txt, args);
+    }
+
+    pub fn println(self: *Self, txt: []const u8, args: anytype) TermiosCursorError!void {
+        const prev_len = self.buff_out.end;
+        try self.print(txt, args);
+        try self.padLine(self.buff_out.end - prev_len);
+    }
+
+    pub fn printlnAt(self: *Self, txt: []const u8, args: anytype, row: usize, col: usize) TermiosCursorError!void {
+        try self.moveCursor(row, col);
+        try self.printlnAt(txt, args, row, col);
     }
 
     pub fn rawMode(self: *Self) *Self {
@@ -349,6 +365,16 @@ pub const Termios = struct {
         try self.moveCursor(row, col);
         try self.write(txt);
     }
+
+    pub fn writeln(self: *Self, txt: []const u8) TermiosCursorError!void {
+        try self.write(txt);
+        try self.padLine(txt.len);
+    }
+
+    pub fn writelnAt(self: *Self, txt: []const u8, row: usize, col: usize) TermiosCursorError!void {
+        try self.moveCursor(row, col);
+        try self.writeln(txt);
+    }
 };
 
 pub const TermSize = struct {
@@ -360,12 +386,45 @@ pub fn main() !void {
     var termios = try getTerm();
     defer termios.deinit() catch {};
 
+    const train = [_][]const u8{
+        "                                     z",
+        "                                  zzz ",
+        "                             zzzzzz   ",
+        "zzzzzzzzzzz  zzzzzzzzzzzzzzzzzzzz  zzz",
+        "zzzzzzzzz  zzzzzzzzzzzzzzzzzzzz  zzzzz",
+        "zzzzzzz  zzzzzzzzzzzzzzzzzzzz  zzzzzzz",
+        "zzzzz                zzzzzz      zzzzz",
+        "zzzzz              zzzzzz        zzzzz",
+        "zzzzz            zzzzzz          zzzzz",
+        "zzzzz          zzzzzz            zzzzz",
+        "zzzzz        zzzzzz              zzzzz",
+        "zzzzz      zzzzzz                zzzzz",
+        "zzzzzzz  zzzzzzzzzzzzzzzzzzzz  zzzzzzz",
+        "zzzzz  zzzzzzzzzzzzzzzzzzzz  zzzzzzzzz",
+        "zzz  zzzzzzzzzzzzzzzzzzzz  zzzzzzzzzzz",
+        "   zzzzzz                             ",
+        " zzz                                  ",
+        "z                                     ",
+    };
+
     try termios.enterNonCanonicalTermWithAltBuffer();
 
-    try termios.write("Hello, World");
-    try termios.writeAt("All your term are belong to us!", 2, 4);
-    try termios.flush();
-    std.time.sleep(3_000_000_000);
+    for (1..100) |i| {
+        const width = termios.size.width;
+
+        for (0..train.len) |j| {
+            const start = if (i > width) i - width else 0;
+            if (start >= train[j].len) {
+                try termios.writelnAt(" ", j + 4, 0);
+                continue;
+            }
+            const end = @min(i, train[j].len);
+
+            try termios.writelnAt(train[j][start..end], j + 4, width - @min(width, i));
+            try termios.flush();
+        }
+        std.time.sleep(100_000_000);
+    }
 
     try termios.exitNonCanonicalTerm();
 
