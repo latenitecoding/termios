@@ -460,43 +460,100 @@ pub fn main() !void {
     defer termios.deinit() catch {};
 
     const train = [_][]const u8{
-        "                                     z",
-        "                                  zzz ",
-        "                             zzzzzz   ",
-        "zzzzzzzzzzz  zzzzzzzzzzzzzzzzzzzz  zzz",
-        "zzzzzzzzz  zzzzzzzzzzzzzzzzzzzz  zzzzz",
-        "zzzzzzz  zzzzzzzzzzzzzzzzzzzz  zzzzzzz",
-        "zzzzz                zzzzzz      zzzzz",
-        "zzzzz              zzzzzz        zzzzz",
-        "zzzzz            zzzzzz          zzzzz",
-        "zzzzz          zzzzzz            zzzzz",
-        "zzzzz        zzzzzz              zzzzz",
-        "zzzzz      zzzzzz                zzzzz",
-        "zzzzzzz  zzzzzzzzzzzzzzzzzzzz  zzzzzzz",
-        "zzzzz  zzzzzzzzzzzzzzzzzzzz  zzzzzzzzz",
-        "zzz  zzzzzzzzzzzzzzzzzzzz  zzzzzzzzzzz",
-        "   zzzzzz                             ",
-        " zzz                                  ",
-        "z                                     ",
+        "                                                                                           z ",
+        "                                 (  ) (@@) ( )  (@)  ()    @@    O     @     O     @    zzz  ",
+        "                            (@@@)                                                  zzzzzz    ",
+        "                       (     )                        zzzzzzzzzzz  zzzzzzzzzzzzzzzzzzzz  zzz ",
+        "                  (@@@)                               zzzzzzzzz  zzzzzzzzzzzzzzzzzzzz  zzzzz ",
+        "             (     )                                  zzzzzzz  zzzzzzzzzzzzzzzzzzzz  zzzzzzz ",
+        "          (@@@@)                                      zzzzz                zzzzzz      zzzzz ",
+        "                                                      zzzzz              zzzzzz        zzzzz ",
+        "        (   )                                         zzzzz            zzzzzz          zzzzz ",
+        "      ====        ________                ___________ zzzzz          zzzzzz            zzzzz ",
+        "  _D _|  |_______/        \\__I_I_____===__|_________| zzzzz        zzzzzz              zzzzz ",
+        "   |(_)---  |   H\\________/ |   |        =|___ ___|   zzzzz      zzzzzz                zzzzz ",
+        "   /     |  |   H  |  |     |   |         ||_| |_||   zzzzzzz  zzzzzzzzzzzzzzzzzzzz  zzzzzzz ",
+        "  |      |  |   H  |__--------------------| [___] |   zzzzz  zzzzzzzzzzzzzzzzzzzz  zzzzzzzzz ",
+        "  | ________|___H__/__|_____/[][]~\\_______|       |   zzz  zzzzzzzzzzzzzzzzzzzz  zzzzzzzzzzz ",
+        "  |/ |   |-----------I_____I [][] []  D   |=======|__|___zzzzzz_____________________________|_",
+    };
+    const wheels = [8][3][]const u8{
+        [3][]const u8{
+            "__/ =| o |=-~~\\   /~~\\  /~~\\  /~~\\ ____Y___________|__|_zzz__________________________________|_",
+            " |/-=|___|=    ||    ||    ||    |_____/~\\___/        z|_D__D__D_|  |_D__D__D_|  |_D__D__D_|  ",
+            "  \\_/      \\_O=====O=====O=====O/      \\_/              \\_/   \\_/    \\_/   \\_/    \\_/   \\_/   ",
+        },
+        [3][]const u8{
+            "__/ =| o |=-~~\\   /~~\\  /~~\\  /~~\\ ____Y___________|__|_zzz__________________________________|_",
+            " |/-=|___|=   O=====O=====O=====O|_____/~\\___/        z|_D__D__D_|  |_D__D__D_|  |_D__D__D_|  ",
+            "  \\_/      \\__/  \\__/  \\__/  \\__/      \\_/              \\_/   \\_/    \\_/   \\_/    \\_/   \\_/   ",
+        },
+        [3][]const u8{
+            "__/ =| o |=-~~O=====O=====O=====O\\ ____Y___________|__|_zzz__________________________________|_",
+            " |/-=|___|=    ||    ||    ||    |_____/~\\___/        z|_D__D__D_|  |_D__D__D_|  |_D__D__D_|  ",
+            "  \\_/      \\__/  \\__/  \\__/  \\__/      \\_/              \\_/   \\_/    \\_/   \\_/    \\_/   \\_/   ",
+        },
+        [3][]const u8{
+            "__/ =| o |=-~O=====O=====O=====O~\\ ____Y___________|__|_zzz__________________________________|_",
+            " |/-=|___|=    ||    ||    ||    |_____/~\\___/        z|_D__D__D_|  |_D__D__D_|  |_D__D__D_|  ",
+            "  \\_/      \\__/  \\__/  \\__/  \\__/      \\_/              \\_/   \\_/    \\_/   \\_/    \\_/   \\_/   ",
+        },
+        [3][]const u8{
+            "__/ =| o |=-O=====O=====O=====O~~\\ ____Y___________|__|_zzz__________________________________|_",
+            " |/-=|___|=    ||    ||    ||    |_____/~\\___/        z|_D__D__D_|  |_D__D__D_|  |_D__D__D_|  ",
+            "  \\_/      \\__/  \\__/  \\__/  \\__/      \\_/              \\_/   \\_/    \\_/   \\_/    \\_/   \\_/   ",
+        },
+        [3][]const u8{
+            "__/ =| o |=-~~\\   /~~\\  /~~\\  /~~\\ ____Y___________|__|_zzz__________________________________|_",
+            " |/-=|___|=O=====O=====O=====O   |_____/~\\___/        z|_D__D__D_|  |_D__D__D_|  |_D__D__D_|  ",
+            "  \\_/      \\__/  \\__/  \\__/  \\__/      \\_/              \\_/   \\_/    \\_/   \\_/    \\_/   \\_/   ",
+        },
+        [3][]const u8{
+            "__/ =| o |=-~~\\   /~~\\  /~~\\  /~~\\ ____Y___________|__|_zzz__________________________________|_",
+            " |/-=|___|=    ||    ||    ||    |_____/~\\___/        z|_D__D__D_|  |_D__D__D_|  |_D__D__D_|  ",
+            "  \\_/      O=====O=====O=====O__/      \\_/              \\_/   \\_/    \\_/   \\_/    \\_/   \\_/   ",
+        },
+        [3][]const u8{
+            "__/ =| o |=-~~\\   /~~\\  /~~\\  /~~\\ ____Y___________|__|_zzz__________________________________|_",
+            " |/-=|___|=    ||    ||    ||    |_____/~\\___/        z|_D__D__D_|  |_D__D__D_|  |_D__D__D_|  ",
+            "  \\_/      \\O=====O=====O=====O_/      \\_/              \\_/   \\_/    \\_/   \\_/    \\_/   \\_/   ",
+        }
     };
 
     try termios.enterNonCanonicalTerm();
 
-    for (1..100) |i| {
+    const iters = termios.size.width + train[0].len + 8;
+
+    for (1..iters) |i| {
         const width = termios.size.width;
 
         for (0..train.len) |j| {
             const start = if (i > width) i - width else 0;
             if (start >= train[j].len) {
-                try termios.writelnAt(" ", j + 4, 0);
+                try termios.writelnAt(" ", 10 + j, 0);
                 continue;
             }
             const end = @min(i, train[j].len);
 
-            try termios.writelnAt(train[j][start..end], j + 4, width - @min(width, i));
+            try termios.writelnAt(train[j][start..end], 10 + j, width - @min(width, i));
             try termios.flush();
         }
-        std.time.sleep(100_000_000);
+        
+        const wheelLines = wheels[@mod(i - 1, wheels.len)];
+
+        for (0..wheelLines.len) |j| {
+            const start = if (i > width) i - width else 0;
+            if (start >= wheelLines[j].len) {
+                try termios.writelnAt(" ", 10 + train.len + j, 0);
+                continue;
+            }
+            const end = @min(i, wheelLines[j].len);
+
+            try termios.writelnAt(wheelLines[j][start..end], 10 + train.len + j, width - @min(width, i));
+            try termios.flush();
+        }
+
+        std.time.sleep(50_000_000);
     }
 
     try termios.exitNonCanonicalTerm();
