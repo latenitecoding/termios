@@ -32,6 +32,15 @@ pub const Termios = struct {
     cooked: bool,
     buff_out: @TypeOf(io.bufferedWriter(stdout.writer())),
     use_alt_buff: bool,
+    auto_flush: bool,
+
+    pub fn withAutoFlush() TermiosReadError!*Termios {
+        if (TERM == null) {
+            _ = try Termios.init();
+        }
+        TERM.?.auto_flush = true;
+        return &TERM.?;
+    }
 
     pub fn init() TermiosReadError!*Termios {
         if (TERM != null) {
@@ -51,6 +60,7 @@ pub const Termios = struct {
             .cooked = true,
             .buff_out = io.bufferedWriter(stdout.writer()),
             .use_alt_buff = false,
+            .auto_flush = false,
         };
 
         posix.sigaction(posix.SIG.WINCH, &posix.Sigaction{
@@ -90,6 +100,9 @@ pub const Termios = struct {
     fn padLine(self: *Self, txt_len: usize) posix.WriteError!void {
         const width = self.size.width;
         try self.buff_out.writer().writeByteNTimes(' ', width - txt_len);
+        if (self.auto_flush) {
+            try self.flush();
+        }
     }
 
     pub fn cook(self: *Self) posix.TermiosSetError!void {
@@ -100,11 +113,17 @@ pub const Termios = struct {
     pub fn disableAltBuffer(self: *Self) posix.WriteError!void {
         try self.buff_out.writer().writeAll("\x1B[?1049l");
         self.use_alt_buff = false;
+        if (self.auto_flush) {
+            try self.flush();
+        }
     }
 
     pub fn enableAltBuffer(self: *Self) posix.WriteError!void {
         try self.buff_out.writer().writeAll("\x1B[?1049h");
         self.use_alt_buff = true;
+        if (self.auto_flush) {
+            try self.flush();
+        }
     }
 
     pub fn enterAltBuffer(self: *Self, hide_cursor: bool) posix.WriteError!void {
@@ -114,7 +133,9 @@ pub const Termios = struct {
         try self.saveCursorPosition();
         try self.saveScreen();
         try self.enableAltBuffer();
-        try self.flush();
+        if (!self.auto_flush) {
+            try self.flush();
+        }
     }
 
     pub fn enterNonCanonicalTermWithAltBuffer(self: *Self) TermiosWriteError!void {
@@ -132,7 +153,9 @@ pub const Termios = struct {
         try self.restoreScreen();
         try self.restoreCursorPosition();
         try self.showCursor();
-        try self.flush();
+        if (!self.auto_flush) {
+            try self.flush();
+        }
     }
 
     pub fn exitNonCanonicalTerm(self: *Self) TermiosWriteError!void {
@@ -150,6 +173,9 @@ pub const Termios = struct {
 
     pub fn hideCursor(self: *Self) posix.WriteError!void {
         try self.buff_out.writer().writeAll("\x1B[?25l");
+        if (self.auto_flush) {
+            try self.flush();
+        }
     }
 
     pub fn moveCursor(self: *Self, row: usize, col: usize) TermiosCursorError!void {
@@ -157,10 +183,16 @@ pub const Termios = struct {
             return error.OutOfBounds;
         }
         try self.buff_out.writer().print("\x1B[{};{}H", .{ row + 1, col + 1 });
+        if (self.auto_flush) {
+            try self.flush();
+        }
     }
 
     pub fn print(self: *Self, txt: []const u8, args: anytype) posix.WriteError!void {
         try self.buff_out.writer().print(txt, args);
+        if (self.auto_flush) {
+            try self.flush();
+        }
     }
 
     pub fn printAt(self: *Self, txt: []const u8, args: anytype,
@@ -202,18 +234,30 @@ pub const Termios = struct {
 
     pub fn restoreScreen(self: *Self) posix.WriteError!void {
         try self.buff_out.writer().writeAll("\x1B[?47l");
+        if (self.auto_flush) {
+            try self.flush();
+        }
     }
 
     pub fn restoreCursorPosition(self: *Self) posix.WriteError!void {
         try self.buff_out.writer().writeAll("\x1B[u");
+        if (self.auto_flush) {
+            try self.flush();
+        }
     }
 
     pub fn saveCursorPosition(self: *Self) posix.WriteError!void {
         try self.buff_out.writer().writeAll("\x1B[s");
+        if (self.auto_flush) {
+            try self.flush();
+        }
     }
 
     pub fn saveScreen(self: *Self) posix.WriteError!void {
         try self.buff_out.writer().writeAll("\x1B[?47h");
+        if (self.auto_flush) {
+            try self.flush();
+        }
     }
 
     pub fn setBreakToInterruptNotIgnored(self: *Self, flag: bool) *Self {
@@ -350,6 +394,9 @@ pub const Termios = struct {
 
     pub fn showCursor(self: *Self) posix.WriteError!void {
         try self.buff_out.writer().writeAll("\x1B[?25h");
+        if (self.auto_flush) {
+            try self.flush();
+        }
     }
 
     pub fn uncook(self: *Self) posix.TermiosSetError!void {
@@ -359,6 +406,9 @@ pub const Termios = struct {
 
     pub fn write(self: *Self, txt: []const u8) posix.WriteError!void {
         try self.buff_out.writer().writeAll(txt);
+        if (self.auto_flush) {
+            try self.flush();
+        }
     }
 
     pub fn writeAt(self: *Self, txt: []const u8, row: usize, col: usize) TermiosCursorError!void {
