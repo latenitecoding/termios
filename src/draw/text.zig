@@ -26,8 +26,17 @@ pub const Text = struct {
         if (!self.box.overlapsBox(bounding_box)) {
             return &.{};
         }
+        const start = @max(self.box.col, bounding_box.col);
+        const end = @min(self.box.right(), bounding_box.right());
+        return self.txt[start..end];
+    }
+
     pub fn redraw(self: *Text) []const u8 {
         return self.txt;
+    }
+
+    pub fn redrawInBox(self: *Text, bounding_box: *const Box) []const u8 {
+        return self.drawInBox(bounding_box);
     }
 
     pub fn drawable(self: *Text) DrawableBox {

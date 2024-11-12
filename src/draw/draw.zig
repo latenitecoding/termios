@@ -7,11 +7,19 @@ pub const Box = struct{
     height: usize,
     width: usize,
 
+    pub inline fn bottom(self: *const Box) usize {
+        return self.row + self.height;
+    }
+
     pub inline fn overlapsBox(self: *const Box, other_box: *const Box) bool {
-        return !(self.row + self.height <= other_box.row or
-                 other_box.row + other_box.height <= self.row or
-                 self.col + self.width <= other_box.col or
-                 other_box.col + other_box.width <= self.col);
+        return !(self.bottom() <= other_box.row or
+                 other_box.bottom() <= self.row or
+                 self.right() <= other_box.col or
+                 other_box.right() <= self.col);
+    }
+
+    pub inline fn right(self: *const Box) usize {
+        return self.col + self.width;
     }
 };
 
