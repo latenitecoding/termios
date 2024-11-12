@@ -22,6 +22,10 @@ pub const Text = struct {
         return self.txt;
     }
 
+    pub fn drawInBox(self: *Text, bounding_box: *const Box) []const u8 {
+        if (!self.box.overlapsBox(bounding_box)) {
+            return &.{};
+        }
     pub fn redraw(self: *Text) []const u8 {
         return self.txt;
     }

@@ -6,6 +6,13 @@ pub const Box = struct{
     col: usize,
     height: usize,
     width: usize,
+
+    pub inline fn overlapsBox(self: *const Box, other_box: *const Box) bool {
+        return !(self.row + self.height <= other_box.row or
+                 other_box.row + other_box.height <= self.row or
+                 self.col + self.width <= other_box.col or
+                 other_box.col + other_box.width <= self.col);
+    }
 };
 
 // row, col
@@ -16,3 +23,41 @@ pub const BoxQuad = struct { usize, usize, usize, usize };
 
 // height, width
 pub const BoxSize = struct { usize, usize };
+
+pub const BoxTypeTag = enum {
+    box,
+    point,
+    quad,
+    size,
+};
+
+pub const BoxType = union(BoxTypeTag) {
+    box: Box,
+    point: BoxPoint,
+    quad: BoxQuad,
+    size: BoxSize,
+};
+
+pub inline fn boxed(box_type: BoxType) Box {
+    return switch(box_type) {
+        .box => box_type.box,
+        .point => .{
+            .row = box_type.point[0],
+            .col = box_type.point[1],
+            .height = 1,
+            .width = 1,
+        },
+        .quad => .{
+            .row = box_type.quad[0],
+            .col = box_type.quad[1],
+            .height = box_type.quad[2],
+            .width = box_type.quad[3],
+        },
+        .size => .{
+            .row = 0,
+            .col = 0,
+            .height = box_type.size[0],
+            .width = box_type.size[1],
+        },
+    };
+}
