@@ -1,3 +1,5 @@
+pub const DrawableBox = @import("drawable.zig").DrawableBox;
+
 pub const Box = struct{
     row: usize,
     col: usize,
