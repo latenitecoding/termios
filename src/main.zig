@@ -1,4 +1,5 @@
 const std = @import("std");
+const draw = @import("draw/draw.zig");
 
 const fs = std.fs;
 const io = std.io;
@@ -7,6 +8,7 @@ const posix = std.posix;
 const stdout = io.getStdOut();
 
 const File = std.fs.File;
+const Text = draw.Text;
 
 pub const TermiosCursorError = error{ OutOfBounds } || posix.WriteError;
 
@@ -483,14 +485,14 @@ pub fn main() !void {
             "        (@@@)                                         zzzzz            zzzzzz          zzzzz ",
         }
     };
-    const train = [_][]const u8{
-        "      ====        ________                ___________ zzzzz          zzzzzz            zzzzz ",
-        "  _D _|  |_______/        \\__I_I_____===__|_________| zzzzz        zzzzzz              zzzzz ",
-        "   |(_)---  |   H\\________/ |   |        =|___ ___|   zzzzz      zzzzzz                zzzzz ",
-        "   /     |  |   H  |  |     |   |         ||_| |_||   zzzzzzz  zzzzzzzzzzzzzzzzzzzz  zzzzzzz ",
-        "  |      |  |   H  |__--------------------| [___] |   zzzzz  zzzzzzzzzzzzzzzzzzzz  zzzzzzzzz ",
-        "  | ________|___H__/__|_____/[][]~\\_______|       |   zzz  zzzzzzzzzzzzzzzzzzzz  zzzzzzzzzzz ",
-        "  |/ |   |-----------I_____I [][] []  D   |=======|__|___zzzzzz_____________________________|_",
+    var train = [_]Text{
+        Text.init(.{ 20, 0 }, "      ====        ________                ___________ zzzzz          zzzzzz            zzzzz "),
+        Text.init(.{ 21, 0 }, "  _D _|  |_______/        \\__I_I_____===__|_________| zzzzz        zzzzzz              zzzzz "),
+        Text.init(.{ 22, 0 }, "   |(_)---  |   H\\________/ |   |        =|___ ___|   zzzzz      zzzzzz                zzzzz "),
+        Text.init(.{ 23, 0 }, "   /     |  |   H  |  |     |   |         ||_| |_||   zzzzzzz  zzzzzzzzzzzzzzzzzzzz  zzzzzzz "),
+        Text.init(.{ 24, 0 }, "  |      |  |   H  |__--------------------| [___] |   zzzzz  zzzzzzzzzzzzzzzzzzzz  zzzzzzzzz "),
+        Text.init(.{ 25, 0 }, "  | ________|___H__/__|_____/[][]~\\_______|       |   zzz  zzzzzzzzzzzzzzzzzzzz  zzzzzzzzzzz "),
+        Text.init(.{ 26, 0 }, "  |/ |   |-----------I_____I [][] []  D   |=======|__|___zzzzzz_____________________________|_"),
     };
     const wheels = [8][3][]const u8{
         [3][]const u8{
@@ -537,7 +539,7 @@ pub fn main() !void {
 
     try termios.enterNonCanonicalTerm();
 
-    const iters = termios.size.width + train[0].len + 8;
+    const iters = termios.size.width + train[0].box.width + 8;
 
     for (1..iters) |i| {
         const width = termios.size.width;
@@ -558,13 +560,13 @@ pub fn main() !void {
 
         for (0..train.len) |j| {
             const start = if (i > width) i - width else 0;
-            if (start >= train[j].len) {
+            if (start >= train[j].box.width) {
                 try termios.writelnAt(" ", 10 + smokeLines.len + j, 0);
                 continue;
             }
-            const end = @min(i, train[j].len);
+            const end = @min(i, train[j].box.width);
 
-            try termios.writelnAt(train[j][start..end], 10 + smokeLines.len + j, width - @min(width, i));
+            try termios.writelnAt(train[j].draw()[start..end], 10 + smokeLines.len + j, width - @min(width, i));
             try termios.flush();
         }
         
