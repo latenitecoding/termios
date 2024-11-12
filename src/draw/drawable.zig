@@ -1,4 +1,4 @@
-const Box = @import("draw.zig").Box;
+const Box = @import("box.zig").Box;
 
 pub const DrawableBox = struct{
     ctx: *anyopaque,

@@ -1,6 +1,6 @@
-const Box = @import("draw.zig").Box;
-const BoxPoint = @import("draw.zig").BoxPoint;
-const DrawableBox = @import("draw.zig").DrawableBox;
+const Box = @import("box.zig").Box;
+const BoxPoint = @import("box.zig").BoxPoint;
+const DrawableBox = @import("drawable.zig").DrawableBox;
 
 pub const Text = struct {
     txt: []const u8,
@@ -22,6 +22,10 @@ pub const Text = struct {
         return self.txt;
     }
 
+    pub fn drawable(self: *Text) DrawableBox {
+        return DrawableBox.init(self, self.box);
+    }
+
     pub fn drawInBox(self: *Text, bounding_box: *const Box) []const u8 {
         if (!self.box.overlapsBox(bounding_box)) {
             return &.{};
@@ -37,9 +41,5 @@ pub const Text = struct {
 
     pub fn redrawInBox(self: *Text, bounding_box: *const Box) []const u8 {
         return self.drawInBox(bounding_box);
-    }
-
-    pub fn drawable(self: *Text) DrawableBox {
-        return DrawableBox.init(self, self.box);
     }
 };

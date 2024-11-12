@@ -1,5 +1,5 @@
 const std = @import("std");
-const draw = @import("draw/draw.zig");
+const draw = @import("draw.zig");
 
 const fs = std.fs;
 const io = std.io;
