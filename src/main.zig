@@ -7,6 +7,8 @@ const mem = std.mem;
 const posix = std.posix;
 const stdout = io.getStdOut();
 
+const boxed = draw.boxed;
+const Box = draw.Box;
 const File = std.fs.File;
 const Text = draw.Text;
 
@@ -519,13 +521,13 @@ pub fn main() !void {
         }
     };
     var train = [_]Text{
-        Text.init(.{ 20, 0 }, "      ====        ________                ___________ zzzzz          zzzzzz            zzzzz "),
-        Text.init(.{ 21, 0 }, "  _D _|  |_______/        \\__I_I_____===__|_________| zzzzz        zzzzzz              zzzzz "),
-        Text.init(.{ 22, 0 }, "   |(_)---  |   H\\________/ |   |        =|___ ___|   zzzzz      zzzzzz                zzzzz "),
-        Text.init(.{ 23, 0 }, "   /     |  |   H  |  |     |   |         ||_| |_||   zzzzzzz  zzzzzzzzzzzzzzzzzzzz  zzzzzzz "),
-        Text.init(.{ 24, 0 }, "  |      |  |   H  |__--------------------| [___] |   zzzzz  zzzzzzzzzzzzzzzzzzzz  zzzzzzzzz "),
-        Text.init(.{ 25, 0 }, "  | ________|___H__/__|_____/[][]~\\_______|       |   zzz  zzzzzzzzzzzzzzzzzzzz  zzzzzzzzzzz "),
-        Text.init(.{ 26, 0 }, "  |/ |   |-----------I_____I [][] []  D   |=======|__|___zzzzzz_____________________________|_"),
+        Text.init(.{ 19, 0 }, "      ====        ________                ___________ zzzzz          zzzzzz            zzzzz "),
+        Text.init(.{ 20, 0 }, "  _D _|  |_______/        \\__I_I_____===__|_________| zzzzz        zzzzzz              zzzzz "),
+        Text.init(.{ 21, 0 }, "   |(_)---  |   H\\________/ |   |        =|___ ___|   zzzzz      zzzzzz                zzzzz "),
+        Text.init(.{ 22, 0 }, "   /     |  |   H  |  |     |   |         ||_| |_||   zzzzzzz  zzzzzzzzzzzzzzzzzzzz  zzzzzzz "),
+        Text.init(.{ 23, 0 }, "  |      |  |   H  |__--------------------| [___] |   zzzzz  zzzzzzzzzzzzzzzzzzzz  zzzzzzzzz "),
+        Text.init(.{ 24, 0 }, "  | ________|___H__/__|_____/[][]~\\_______|       |   zzz  zzzzzzzzzzzzzzzzzzzz  zzzzzzzzzzz "),
+        Text.init(.{ 25, 0 }, "  |/ |   |-----------I_____I [][] []  D   |=======|__|___zzzzzz_____________________________|_"),
     };
     const wheels = [8][3][]const u8{
         [3][]const u8{
@@ -592,14 +594,15 @@ pub fn main() !void {
         }
 
         for (0..train.len) |j| {
-            const start = if (i > width) i - width else 0;
-            if (start >= train[j].box.width) {
-                try termios.writelnAt(" ", 10 + smokeLines.len + j, 0);
-                continue;
-            }
-            const end = @min(i, train[j].box.width);
+            const bounding_box = Box{
+                .row = 10 + smokeLines.len + j,
+                .col = if (i > width) i - width else 0,
+                .height = 1,
+                .width = @min(i, train[j].box.width),
+            };
+            const col_loc = width - @min(width, i);
 
-            try termios.writelnAt(train[j].draw()[start..end], 10 + smokeLines.len + j, width - @min(width, i));
+            try termios.writelnAt(train[j].drawInBox(&bounding_box), bounding_box.row, col_loc);
             try termios.flush();
         }
         
